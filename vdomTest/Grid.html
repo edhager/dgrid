@@ -39,11 +39,17 @@
 	var NUMBER_OF_DATA_COLUMNS = 12;
 	require({
 		packages: [
-			{name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette'}
+			{ name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette' }
 		]
-	}, ['maquette', 'dgrid/Grid', 'dgrid/vdom/Grid', 'dgrid/_StoreMixin', 'dgrid/vdom/_StoreMixin', 'dstore/Memory',
-		'dstore/Trackable', 'dojo/on'], function (maquette, Grid, VdomGrid, StoreMixin, VdomStoreMixin, Memory, Trackable, on) {
-
+	}, [
+		'maquette',
+		'dojo/on',
+		'dgrid/Grid',
+		'dgrid/vdom/Grid',
+		'dgrid/_StoreMixin',
+		'dgrid/vdom/_StoreMixin',
+		'dgrid/vdomTest/util'
+	], function (maquette, on, Grid, VdomGrid, StoreMixin, VdomStoreMixin, util) {
 		var VdomRenderAllStoreMixin = VdomStoreMixin.createSubclass([], {
 			refresh: function () {
 				var self = this;
@@ -57,8 +63,7 @@
 				}
 
 				return this._trackError(function () {
-					return self.renderQueryResults(
-							self._renderedCollection.fetch());
+					return self.renderQueryResults(self._renderedCollection.fetch());
 				});
 			},
 
@@ -104,28 +109,16 @@
 
 		var projector = maquette.createProjector();
 
-		var data = [];
-		var i = 0;
-		for (; i < 20; i++) {
-			data[i] = makeDataItem(i, NUMBER_OF_DATA_COLUMNS);
-		}
+		// createSyncStore clones data, so we only have to populate it once
+		var data = util.makeData(100, NUMBER_OF_DATA_COLUMNS);
+		var store = util.makeStore({ data: data });
+		var vdomStore = util.makeStore({ data: data });
 
-		var store = new (Memory.createSubclass([Trackable]))({data: data});
-
-		data = [];
-		i = 0;
-		for (; i < 20; i++) {
-			data[i] = makeDataItem(i, NUMBER_OF_DATA_COLUMNS);
-		}
-
-		var vdomStore = new (Memory.createSubclass([Trackable]))({data: data});
-
-		// Pass the proj
 		var VdomStoreGrid = VdomGrid.createSubclass([VdomRenderAllStoreMixin]);
 		var vdomGrid = new VdomStoreGrid({
 			id: 'vdomGrid',
 			projector: projector,
-			columns: makeColumnDef(NUMBER_OF_DATA_COLUMNS),
+			columns: util.makeColumnDef(NUMBER_OF_DATA_COLUMNS),
 			collection: vdomStore
 		});
 		projector.append(document.getElementById(vdomGrid.id), function () {
@@ -134,46 +127,17 @@
 
 		var StoreGrid = Grid.createSubclass([RenderAllStoreMixin]);
 		var grid = new StoreGrid({
-			columns: makeColumnDef(NUMBER_OF_DATA_COLUMNS),
+			columns: util.makeColumnDef(NUMBER_OF_DATA_COLUMNS),
 			collection: store
 		}, 'grid');
 
-		var toModify = 0;
 		on(document.getElementById('modifyButton1'), 'click', function () {
-			vdomStore.get(toModify).then(function (item) {
-				item.field0 = 'XXX ' + i;
-				vdomStore.put(item);
-				i++;
-				toModify = (toModify + 1) % 3;
-			});
+			util.modifyItem(vdomStore);
 		});
 		on(document.getElementById('modifyButton2'), 'click', function () {
-			store.get(toModify).then(function (item) {
-				item.field0 = 'XXX ' + i;
-				store.put(item);
-				i++;
-				toModify = (toModify + 1) % 3;
-			});
+			util.modifyItem(store);
 		});
 	});
-
-	function makeDataItem(i, fieldCount) {
-		var item = { id: i };
-		for (var n = 0; n < fieldCount; n++) {
-			item['field' + n] = 'Data ' + n + ' - ' + i;
-		}
-		return item;
-	}
-
-	function makeColumnDef(fieldCount) {
-		var columns = {
-			id: "ID"
-		};
-		for (var n = 0 ; n < fieldCount; n++) {
-			columns['field' + n] = "Field " + n;
-		}
-		return columns;
-	}
 </script>
 </body>
 </html>

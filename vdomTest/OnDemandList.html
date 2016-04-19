@@ -24,126 +24,56 @@
 	</style>
 </head>
 <body class="claro">
-<div class="heading">vdom grid</div>
+<div class="heading">vdom list</div>
 <div id="vdomGrid"></div>
-<div>
-	<button id="modifyButton1">Modify</button>
-</div>
-<div class="heading">grid</div>
+<div class="heading">list</div>
 <div id="grid"></div>
-<div>
-	<button id="modifyButton2">Modify</button>
-</div>
 <script src="../../dojo/dojo.js" data-dojo-config="async: true"></script>
 <script>
 	var NUMBER_OF_DATA_COLUMNS = 12;
 	require({
 		packages: [
-			{name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette'}
+			{ name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette' }
 		]
-	}, ['maquette', 'dgrid/OnDemandList', 'dgrid/vdom/OnDemandList', 'dgrid/_StoreMixin', 'dgrid/vdom/_StoreMixin', 'dstore/Memory',
-		'dstore/Trackable', 'dojo/on'], function (maquette, OnDemandList, VdomOnDemandList, StoreMixin, VdomStoreMixin, Memory, Trackable, on) {
-
-
-		var VdomOnDemandStoreMixin = VdomStoreMixin.createSubclass([], {
-			refresh: function () {
-				var self = this;
-
-				// First defer to List#refresh to clear the grid's
-				// previous content
-				this.inherited(arguments);
-
-				if (!this._renderedCollection) {
-					return;
-				}
-			},
-
-			renderArray: function () {
-				var rows = this.inherited(arguments);
-
-				// Clear _lastCollection which is ordinarily only used for
-				// store-less grids
-				this._lastCollection = null;
-
-				return rows;
-			}
-		});
-
-		var OnDemandStoreMixin = StoreMixin.createSubclass([], {
-			refresh: function () {
-				var self = this;
-
-				// First defer to List#refresh to clear the grid's
-				// previous content
-				this.inherited(arguments);
-
-				if (!this._renderedCollection) {
-					return;
-				}
-			},
-
-			renderArray: function () {
-				var rows = this.inherited(arguments);
-
-				// Clear _lastCollection which is ordinarily only used for
-				// store-less grids
-				this._lastCollection = null;
-
-				return rows;
-			}
-		});
-
+	}, [
+		'maquette',
+		'dojo/on',
+		'dgrid/OnDemandList',
+		'dgrid/vdom/OnDemandList',
+		'dgrid/vdom/hyperscript',
+		'dgrid/_StoreMixin',
+		'dgrid/vdom/_StoreMixin',
+		'dgrid/vdomTest/util'
+	], function (maquette, on, OnDemandList, VdomOnDemandList, h, StoreMixin, VdomStoreMixin, util) {
 		var projector = maquette.createProjector();
 
-		var data = [];
-		var i = 0;
-		for (; i < 20000; i++) {
-			data[i] = i;
-		}
+		var data = util.makeData(20000, 0);
 
-		var store = new (Memory.createSubclass([Trackable]))({data: data});
-
-		data = [];
-		i = 0;
-		for (; i < 20000; i++) {
-			data[i] = i;
-		}
-
-		var vdomStore = new (Memory.createSubclass([Trackable]))({data: data});
+		// createSyncStore clones data, so we only have to populate it once above
+		var vdomStore = util.makeStore({ data: data });
+		var store = util.makeStore({ data: data });
 
 		// Pass the proj
-		var VdomStoreList = VdomOnDemandList.createSubclass([VdomOnDemandStoreMixin]);
-		var vdomGrid = new VdomStoreList({
+		var vdomGrid = new VdomOnDemandList({
 			id: 'vdomGrid',
 			projector: projector,
-			collection: vdomStore
+			collection: vdomStore,
+			renderRow: function (item) {
+				return h('div', item.id);
+			}
 		});
 		projector.append(document.getElementById(vdomGrid.id), function () {
 			return vdomGrid.create();
 		});
 
-		var StoreGrid = OnDemandList.createSubclass([OnDemandStoreMixin]);
-		var grid = new StoreGrid({
-			collection: store
+		var grid = new OnDemandList({
+			collection: store,
+			renderRow: function (item) {
+				var div = document.createElement('div');
+				div.textContent = item.id;
+				return div;
+			}
 		}, 'grid');
-
-		var toModify = 0;
-		on(document.getElementById('modifyButton1'), 'click', function () {
-			vdomStore.get(toModify).then(function (item) {
-				item.field0 = 'XXX ' + i;
-				vdomStore.put(item);
-				i++;
-				toModify = (toModify + 1) % 3;
-			});
-		});
-		on(document.getElementById('modifyButton2'), 'click', function () {
-			store.get(toModify).then(function (item) {
-				item.field0 = 'XXX ' + i;
-				store.put(item);
-				i++;
-				toModify = (toModify + 1) % 3;
-			});
-		});
 	});
 </script>
 </body>
