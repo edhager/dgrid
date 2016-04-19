@@ -19,14 +19,6 @@ define([
 		//		The number of rows to request at one time.
 		rowsPerPage: 25,
 
-		// maxEmptySpace: Integer
-		//		Defines the maximum size (in pixels) of unrendered space below the
-		//		currently-rendered rows. Setting this to less than Infinity can be useful if you
-		//		wish to limit the initial vertical scrolling of the grid so that the scrolling is
-		// 		not excessively sensitive. With very large grids of data this may make scrolling
-		//		easier to use, albiet it can limit the ability to instantly scroll to the end.
-		maxEmptySpace: Infinity,
-
 		// bufferRows: Integer
 		//	  The number of rows to keep ready on each side of the viewport area so that the user can
 		//	  perform local scrolling without seeing the grid being built. Increasing this number can
@@ -78,8 +70,7 @@ define([
 			//			specifying it in the options here will override the instance
 			//			property's value for this specific refresh call only.
 
-			var self = this,
-				keep = (options && options.keepScrollPosition);
+			var keep = (options && options.keepScrollPosition);
 
 			// Fall back to instance property if option is not defined
 			if (typeof keep === 'undefined') {
@@ -159,13 +150,13 @@ define([
 
 		_processScroll: function (evt) {
 			// summary:
-			//		Checks to make sure that everything in the viewable area has been
-			//		downloaded, and triggering a request for the necessary data when needed.
+			//		Checks to make sure that everything in the viewable area has been fetched,
+			//		triggering a request for the necessary data if needed.
 
 			if (!this.bodyNode.domNode || !this.contentNode.domNode) {
 				this._startingIndex = 0;
 				this._end = this.rowsPerPage;
-				return this.render(0, this.rowsPerPage);
+				return this.renderRange(0, this.rowsPerPage);
 			} else if (!this.rowHeight) {
 				this._calcAverageRowHeight(
 					this.contentNode.domNode ? this.contentNode.domNode.getElementsByClassName('dgrid-row') : []
@@ -183,15 +174,14 @@ define([
 			count = Math.max(count, this.rowsPerPage);
 			end = this._end = startingIndex + count + this.bufferRows;
 			startingIndex = this._startingIndex = Math.max(0, startingIndex - this.bufferRows);
-			if (this._totalRows) {
-				startingIndex = this._startingIndex = Math.min(startingIndex, this._totalRows - count);
+			if (this._total) {
+				startingIndex = this._startingIndex = Math.min(startingIndex, this._total - count);
 			}
 
-
-			return this.render(startingIndex, end)
+			return this.renderRange(startingIndex, end);
 		},
 
-		render: function(startingIndex, end) {
+		renderRange: function(startingIndex, end) {
 			if (!this._renderedCollection) {
 				return;
 			}
@@ -202,7 +192,7 @@ define([
 			});
 			var self = this;
 			return results.totalLength.then(function (length) {
-				self._totalRows = length;
+				self._total = length;
 				return results.then(function (data) {
 					self.renderArray(data);
 				});
@@ -211,14 +201,20 @@ define([
 
 		renderData: function() {
 			this.inherited(arguments);
-			if (this._totalRows) {
+			if (this._total) {
 				var rowHeight = this.rowHeight || 20;
 				this.contentNode.children.unshift(
-					h('div', { key: 'before-node', style: 'height: ' + (this._startingIndex * rowHeight) + 'px;'})
+					h('div', {
+						key: 'before-node',
+						style: 'height: ' + (this._startingIndex * rowHeight) + 'px;'
+					})
 				);
 
 				this.contentNode.children.push(
-					h('div', { key: 'after-node', style: 'height: ' + ((this._totalRows - this._end) * rowHeight) + 'px;'})
+					h('div', {
+						key: 'after-node',
+						style: 'height: ' + ((this._total - this._end) * rowHeight) + 'px;'
+					})
 				);
 
 			}

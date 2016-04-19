@@ -453,7 +453,7 @@ define([
 			});
 		},
 
-		_observeCollection: function (collection, container, options) {
+		_observeCollection: function (collection/*, container, options*/) {
 			var self = this;
 
 			var handles = [
