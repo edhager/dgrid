@@ -227,9 +227,10 @@ define([
 				bodyNodeProperties.tabIndex = -1;
 			}
 
-			// NOTE: cannot bind this.scrollHandler to 'this' because the vdom doesn't allow
+			// NOTE: cannot bind this._scrollHandler to 'this' because the vdom doesn't allow
 			// event handler functions to change.
-			bodyNodeProperties.onscroll = this.scrollHandler;
+			// (TODO: could binding be feasible if dgrid manages its own vdom projector and create is only run once?)
+			bodyNodeProperties.onscroll = this._scrollHandler;
 			bodyNodeProperties.grid = this;
 
 			bodyNode = this.bodyNode = h('div.dgrid-scroller', bodyNodeProperties);
@@ -264,7 +265,7 @@ define([
 			return h('div.' + nodeClasses.join('.'), nodeProperties, nodeChildren);
 		},
 
-		scrollHandler: function (event) {
+		_scrollHandler: function (event) {
 			var grid = event.target.grid;
 			if (grid.showHeader) {
 				// keep the header aligned with the body
@@ -273,16 +274,6 @@ define([
 			// re-fire, since browsers are not consistent about propagation here
 			event.stopPropagation();
 			listen.emit(grid.node.domNode, 'scroll', {scrollTarget: grid.bodyNode.domNode});
-
-			if (grid._processScroll) {
-				if (!grid._modifiedProcessScroll) {
-					grid._modifiedProcessScroll =
-						miscUtil[grid.pagingMethod](function (event) {
-							grid._processScroll(event);
-						}, grid, grid.pagingDelay)
-				}
-				grid._modifiedProcessScroll(event);
-			}
 		},
 
 

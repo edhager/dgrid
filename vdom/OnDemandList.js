@@ -50,15 +50,18 @@ define([
 		//		the first range of data.
 		rowHeight: 0,
 
-		postCreate: function() {
+		postCreate: function () {
 			this.inherited(arguments);
+
+			this._debouncedProcessScroll = miscUtil[this.pagingMethod](function (event) {
+				this._processScroll(event);
+			}, this, this.pagingDelay);
 		},
 
-		destroy: function () {
-			this.inherited(arguments);
-			if (this._refreshTimeout) {
-				clearTimeout(this._refreshTimeout);
-			}
+		_scrollHandler: function (event) {
+			var grid = event.target.grid;
+			grid.inherited(arguments);
+			grid._debouncedProcessScroll(event);
 		},
 
 		refresh: function (options) {
@@ -172,10 +175,10 @@ define([
 			}
 
 			count = Math.max(count, this.rowsPerPage);
-			end = this._end = startingIndex + count + this.bufferRows;
-			startingIndex = this._startingIndex = Math.max(0, startingIndex - this.bufferRows);
+			end = startingIndex + count + this.bufferRows;
+			startingIndex = Math.max(0, startingIndex - this.bufferRows);
 			if (this._total) {
-				startingIndex = this._startingIndex = Math.min(startingIndex, this._total - count);
+				startingIndex = Math.min(startingIndex, this._total - count);
 			}
 
 			return this.renderRange(startingIndex, end);
@@ -192,6 +195,8 @@ define([
 			});
 			var self = this;
 			return results.totalLength.then(function (length) {
+				self._startingIndex = startingIndex;
+				self._end = end;
 				self._total = length;
 				return results.then(function (data) {
 					self.renderArray(data);
