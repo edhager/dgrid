@@ -44,7 +44,7 @@
 
 		var vdomList = new VdomList({ projector: projector, id: 1});
 		projector.append(document.getElementById('vdomList'), function () {
-			return vdomList.create();
+			return vdomList.render();
 		});
 
 		vdomList.renderArray(data1);

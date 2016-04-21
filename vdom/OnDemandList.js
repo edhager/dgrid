@@ -58,10 +58,9 @@ define([
 			}, this, this.pagingDelay);
 		},
 
-		_scrollHandler: function (event) {
-			var grid = event.target.grid;
-			grid.inherited(arguments);
-			grid._debouncedProcessScroll(event);
+		_scrollHandler: function () {
+			this.inherited(arguments);
+			this._debouncedProcessScroll(event);
 		},
 
 		refresh: function (options) {

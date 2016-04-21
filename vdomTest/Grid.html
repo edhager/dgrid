@@ -122,7 +122,7 @@
 			collection: vdomStore
 		});
 		projector.append(document.getElementById(vdomGrid.id), function () {
-			return vdomGrid.create();
+			return vdomGrid.render();
 		});
 
 		var StoreGrid = Grid.createSubclass([RenderAllStoreMixin]);

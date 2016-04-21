@@ -64,7 +64,7 @@
 			collection: vdomStore
 		});
 		projector.append(document.getElementById(vdomGrid.id), function () {
-			return vdomGrid.create();
+			return vdomGrid.render();
 		});
 
 		var grid = new OnDemandGrid({
