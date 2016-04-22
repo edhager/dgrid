@@ -71,6 +71,10 @@
 <div>(From may be a range in "start-end" format, where end is inclusive)</div>
 </form>
 
+<div>
+	<button id="toggle-editable">Toggle Editable</button>
+</div>
+
 <div id="test"></div>
 
 <script src="../../dojo/dojo.js" data-dojo-config="async: true"></script>
@@ -93,11 +97,21 @@
 		function createItem() {
 			return {
 				id: ++lastIndex,
-				mod: 0
+				name: 'Item ' + lastIndex
 			};
 		}
 
-		while (lastIndex < 10) {
+		function sortItems(a, b) {
+			if (a.name > b.name) {
+				return 1;
+			}
+			if (a.name < b.name) {
+				return -1;
+			}
+			return 0;
+		}
+
+		while (lastIndex < 9) {
 			data.push(createItem());
 		}
 
@@ -128,15 +142,30 @@
 			pulse(node, 'item--modified');
 		}
 
+		var editable = false;
+
+		function onblur(event) {
+			var itemNode = event.target.parentNode;
+			// Hack for POC's sake since this example doesn't maintain a map
+			var index = Array.prototype.slice.call(itemNode.parentNode.children).indexOf(itemNode);
+			data[index].name = event.target.value;
+		}
+
 		projector.append(document.getElementById('test'), function () {
-			return h('div', data.map(function (item) {
+			return h('div', data.sort(sortItems).map(function (item) {
 				return h('div', {
 					classes: { item: true },
 					key: item.id,
 					enterAnimation: animateEnter,
 					exitAnimation: animateExit,
 					updateAnimation: animateUpdate
-				}, item.id + (item.mod ? '(edit ' + item.mod + ')' : ''));
+				}, editable ? [
+					h('input', {
+						key: item.id + '-edit',
+						onblur: onblur,
+						value: item.name
+					})
+				] : item.name);
 			}));
 		});
 
@@ -187,6 +216,11 @@
 			projector.scheduleRender();
 
 			this.reset();
+		});
+
+		on(document.getElementById('toggle-editable'), 'click', function () {
+			editable = !editable;
+			projector.scheduleRender();
 		});
 	});
 </script>
