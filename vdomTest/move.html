@@ -7,6 +7,10 @@
 	<style>
 		@import "../../dojo/resources/dojo.css";
 
+		input {
+			width: 5em;
+		}
+
 		#test {
 			border: 1px solid #999;
 			margin-top: 1em;
@@ -41,23 +45,31 @@
 	<button id="modify" type="button">Modify 1st item</button>
 </div>
 
-<h3>Move</h3>
-<div>
-	<button id="move-first-to-last" type="button">Move first item to end</button>
-	<button id="move-last-to-first" type="button">Move last item to top</button>
-</div>
-
 <h3>Add</h3>
 <div>
 	<button id="add-first" type="button">Add first item</button>
 	<button id="add-last" type="button">Add last item</button>
 </div>
 
-<h3>Add</h3>
+<h3>Remove</h3>
 <div>
 	<button id="remove-first" type="button">Remove first item</button>
 	<button id="remove-last" type="button">Remove last item</button>
 </div>
+
+<h3>Move</h3>
+<div>
+	<button id="move-first-to-last" type="button">Move first item to end</button>
+	<button id="move-last-to-first" type="button">Move last item to top</button>
+</div>
+<form id="move">
+<div>
+	<label>From index: <input name="from"></label>
+	<label>to (before) index: <input name="to"></label>
+	<button>Move</button>
+</div>
+<div>(From may be a range in "start-end" format, where end is inclusive)</div>
+</form>
 
 <div id="test"></div>
 
@@ -133,16 +145,6 @@
 			projector.scheduleRender();
 		});
 
-		on(document.getElementById('move-first-to-last'), 'click', function () {
-			data.push(data.shift());
-			projector.scheduleRender();
-		});
-
-		on(document.getElementById('move-last-to-first'), 'click', function () {
-			data.unshift(data.pop());
-			projector.scheduleRender();
-		});
-
 		on(document.getElementById('add-first'), 'click', function () {
 			data.unshift(createItem());
 			projector.scheduleRender();
@@ -161,6 +163,30 @@
 		on(document.getElementById('remove-last'), 'click', function () {
 			data.pop();
 			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move-first-to-last'), 'click', function () {
+			data.push(data.shift());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move-last-to-first'), 'click', function () {
+			data.unshift(data.pop());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move'), 'submit', function (event) {
+			event.preventDefault();
+			var fromParts = this.elements.from.value.split('-');
+			var count = fromParts.length === 2 ? fromParts[1] - fromParts[0] + 1 : 1;
+			var fromIndex = fromParts[0];
+			var toIndex = this.elements.to.value;
+
+			var items = data.splice(fromIndex, count);
+			data.splice.apply(data, [ toIndex, 0 ].concat(items));
+			projector.scheduleRender();
+
+			this.reset();
 		});
 	});
 </script>
