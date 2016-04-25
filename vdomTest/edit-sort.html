@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Item Editing/Sorting Test</title>
+	<meta name="viewport" content="width=570">
+	<style>
+		@import "../../dojo/resources/dojo.css";
+
+		input {
+			width: 5em;
+		}
+
+		#test {
+			border: 1px solid #999;
+			margin-top: 1em;
+			overflow: auto;
+			width: 20em;
+		}
+
+		.item {
+			transition-property: background-color;
+			transition-duration: 0.5s;
+		}
+
+		.item--added {
+			background-color: #9f9;
+		}
+
+		.item--modified {
+			background-color: #ff9;
+		}
+
+		.item--removed {
+			background-color: #f99;
+		}
+	</style>
+</head>
+<body>
+
+<h2>Testing editing of sorted items</h2>
+
+<div>
+	<button id="toggle-editable">Toggle Editable</button>
+</div>
+
+<div id="test"></div>
+
+<script src="../../dojo/dojo.js" data-dojo-config="async: true"></script>
+<script>
+	require({
+		packages: [
+			{ name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette' }
+		]
+	}, [
+		'maquette',
+		'dojo/Deferred',
+		'dojo/on',
+		'dgrid/vdom/hyperscript'
+	], function (maquette, Deferred, on, h) {
+		var projector = maquette.createProjector();
+
+		var data = [];
+		var lastIndex = 0;
+
+		function createItem() {
+			return {
+				id: ++lastIndex,
+				name: 'Item ' + lastIndex
+			};
+		}
+
+		function sortItems(a, b) {
+			if (a.name > b.name) {
+				return 1;
+			}
+			if (a.name < b.name) {
+				return -1;
+			}
+			return 0;
+		}
+
+		while (lastIndex < 9) {
+			data.push(createItem());
+		}
+
+		function pulse(node, cls) {
+			var dfd = new Deferred();
+			node.classList.add(cls);
+
+			// It seems as if this class ends up applied immediately, preventing the initial transition
+			setTimeout(function () {
+				node.classList.remove(cls);
+			}, 500);
+			setTimeout(function () {
+				dfd.resolve();
+			}, 1000);
+
+			return dfd.promise;
+		}
+
+		function animateEnter(node) {
+			pulse(node, 'item--added');
+		}
+
+		function animateExit(node, remove) {
+			pulse(node, 'item--removed').then(remove);
+		}
+
+		function animateUpdate(node) {
+			pulse(node, 'item--modified');
+		}
+
+		var editable = true;
+
+		function onblur(event) {
+			var itemNode = event.target.parentNode;
+			// Hack for POC's sake since this example doesn't maintain a map
+			var index = Array.prototype.slice.call(itemNode.parentNode.children).indexOf(itemNode);
+			data[index].name = event.target.value;
+		}
+
+		projector.append(document.getElementById('test'), function () {
+			return h('div', data.sort(sortItems).map(function (item) {
+				return h('div', {
+					classes: { item: true },
+					key: item.id,
+					enterAnimation: animateEnter,
+					exitAnimation: animateExit,
+					updateAnimation: animateUpdate
+				}, editable ? [
+					h('input', {
+						key: item.id + '-edit',
+						onblur: onblur,
+						value: item.name
+					})
+				] : item.name);
+			}));
+		});
+
+		on(document.getElementById('toggle-editable'), 'click', function () {
+			editable = !editable;
+			projector.scheduleRender();
+		});
+	});
+</script>
+</body>
+</html>
