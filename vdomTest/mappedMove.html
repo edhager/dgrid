@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Moved Item Test Using Maquette's Mapping Function</title>
+	<meta name="viewport" content="width=570">
+	<style>
+		@import "../../dojo/resources/dojo.css";
+
+		input {
+			width: 5em;
+		}
+
+		#test {
+			border: 1px solid #999;
+			margin-top: 1em;
+			overflow: auto;
+			width: 20em;
+		}
+
+		.item {
+			transition-property: background-color;
+			transition-duration: 0.5s;
+		}
+
+		.item--added {
+			background-color: #9f9;
+		}
+
+		.item--modified {
+			background-color: #ff9;
+		}
+
+		.item--removed {
+			background-color: #f99;
+		}
+	</style>
+</head>
+<body>
+
+<h2>Testing modifications</h2>
+
+<h3>Modify in-place</h3>
+<div>
+	<button id="modify" type="button">Modify 1st item</button>
+</div>
+
+<h3>Add</h3>
+<div>
+	<button id="add-first" type="button">Add first item</button>
+	<button id="add-last" type="button">Add last item</button>
+</div>
+
+<h3>Remove</h3>
+<div>
+	<button id="remove-first" type="button">Remove first item</button>
+	<button id="remove-last" type="button">Remove last item</button>
+</div>
+
+<h3>Move</h3>
+<div>
+	<button id="move-first-to-last" type="button">Move first item to end</button>
+	<button id="move-last-to-first" type="button">Move last item to top</button>
+</div>
+<form id="move">
+<div>
+	<label>From index: <input name="from"></label>
+	<label>to (before) index: <input name="to"></label>
+	<button>Move</button>
+</div>
+<div>(From may be a range in "start-end" format, where end is inclusive)</div>
+</form>
+
+<div id="test"></div>
+
+<script src="../../dojo/dojo.js" data-dojo-config="async: true"></script>
+<script>
+	require({
+		packages: [
+			{name: 'maquette', location: '../dgrid/node_modules/maquette/dist', main: 'maquette'}
+		]
+	}, [
+		'maquette',
+		'dojo/Deferred',
+		'dojo/on',
+		'dgrid/vdom/hyperscript'
+	], function (maquette, Deferred, on, h) {
+		var projector = maquette.createProjector();
+
+		var data = [];
+		var lastIndex = 0;
+
+		function createItem() {
+			return {
+				id: ++lastIndex,
+				mod: 0
+			};
+		}
+
+		while (lastIndex < 10) {
+			data.push(createItem());
+		}
+
+		function pulse(node, cls) {
+			var dfd = new Deferred();
+			node.classList.add(cls);
+
+			// It seems as if this class ends up applied immediately, preventing the initial transition
+			setTimeout(function () {
+				node.classList.remove(cls);
+			}, 500);
+			setTimeout(function () {
+				dfd.resolve();
+			}, 1000);
+
+			return dfd.promise;
+		}
+
+		function animateEnter(node) {
+			pulse(node, 'item--added');
+		}
+
+		function animateExit(node, remove) {
+			pulse(node, 'item--removed').then(remove);
+		}
+
+		function animateUpdate(node) {
+			pulse(node, 'item--modified');
+		}
+
+		// Keeps the data and components synchronized. Components are stored
+		// under mapping.results
+		var mapping = maquette.createMapping(
+				function getSourceKey(item) {
+					// function that returns a key to uniquely identify each item in the data
+					return item.id;
+				},
+				function createResult(item) {
+					// function to create the target based on the source
+					// (the same function that you use in Array.map)
+					return {
+						label: item.id,
+						renderMaquette: function () {
+							return h('div', {
+								classes: {item: true},
+								key: item.id,
+								enterAnimation: animateEnter,
+								exitAnimation: animateExit,
+								updateAnimation: animateUpdate
+							}, this.label);
+						}
+					}
+				},
+				function updateTarget(item, target) {
+					// This function can be used to update the component with the updated item
+					if (item.mod){
+						target.label = item.id + '(edit ' + item.mod + ')';
+					}
+				}
+		);
+
+		projector.append(document.getElementById('test'), function () {
+			mapping.map(data);
+			return h('div', mapping.results.map(function (component) {
+				return component.renderMaquette();
+			}));
+		});
+
+		on(document.getElementById('modify'), 'click', function () {
+			data[0].mod++;
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('add-first'), 'click', function () {
+			data.unshift(createItem());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('add-last'), 'click', function () {
+			data.push(createItem());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('remove-first'), 'click', function () {
+			data.shift();
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('remove-last'), 'click', function () {
+			data.pop();
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move-first-to-last'), 'click', function () {
+			data.push(data.shift());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move-last-to-first'), 'click', function () {
+			data.unshift(data.pop());
+			projector.scheduleRender();
+		});
+
+		on(document.getElementById('move'), 'submit', function (event) {
+			event.preventDefault();
+			var fromParts = this.elements.from.value.split('-');
+			var count = fromParts.length === 2 ? fromParts[1] - fromParts[0] + 1 : 1;
+			var fromIndex = fromParts[0];
+			var toIndex = this.elements.to.value;
+
+			var items = data.splice(fromIndex, count);
+			data.splice.apply(data, [toIndex, 0].concat(items));
+			projector.scheduleRender();
+		});
+	});
+</script>
+</body>
+</html>
