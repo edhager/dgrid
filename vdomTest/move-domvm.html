@@ -15,24 +15,17 @@
 			border: 1px solid #999;
 			margin-top: 1em;
 			overflow: auto;
-			width: 20em;
+			width: 30em;
 		}
 
-		.item {
-			transition-property: background-color;
-			transition-duration: 0.5s;
+		.item .cell {
+			display: inline-block;
+			width: 50px;
+			margin-right: 5px;
 		}
 
-		.item--added {
-			background-color: #9f9;
-		}
-
-		.item--modified {
-			background-color: #ff9;
-		}
-
-		.item--removed {
-			background-color: #f99;
+		.item .cell.name {
+			width: 100px;
 		}
 	</style>
 </head>
@@ -42,7 +35,8 @@
 
 <h3>Modify in-place</h3>
 <div>
-	<button id='modify' type='button'>Modify 1st item</button>
+	<button id='modify1' type='button'>Modify 1st item first name</button>
+	<button id='modify2' type='button'>Modify 1st item second name</button>
 </div>
 
 <h3>Add</h3>
@@ -95,7 +89,10 @@
 		function createItem() {
 			return {
 				id: ++lastIndex,
-				mod: 0
+				modFirst: 0,
+				modLast: 0,
+				first: 'First ' + lastIndex,
+				last: 'Last ' + lastIndex
 			};
 		}
 
@@ -106,9 +103,10 @@
 		function listView(vm, data) {
 			return function () {
 				return ['div', data.map(function (item) {
-					return ['div', [
-							['span', item.id],
-							['span', (item.mod ? '(edit ' + item.mod + ')' : '')]
+					return ['div.item', [
+							['div.cell', item.id],
+							['div.cell.name', item.first + (item.modFirst ? '(edit ' + item.modFirst + ')' : '')],
+							['div.cell.name', item.last + (item.modLast ? '(edit ' + item.modLast + ')' : '')]
 					]];
 				})];
 			}
@@ -118,8 +116,13 @@
 
 		vm.mount(document.getElementById('test'));
 
-		on(document.getElementById('modify'), 'click', function () {
-			data[0].mod++;
+		on(document.getElementById('modify1'), 'click', function () {
+			data[0].modFirst++;
+			vm.redraw();
+		});
+
+		on(document.getElementById('modify2'), 'click', function () {
+			data[0].modLast++;
 			vm.redraw();
 		});
 
